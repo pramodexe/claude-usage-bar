@@ -146,7 +146,7 @@ export const register: Register = on => {
     const parts = await usageParts($, e)
 
     return (
-      <Box flexDirection="row" flexWrap="wrap">
+      <Box flexDirection="row" flexWrap="wrap" justifyContent="center" width="100%">
         {parts}
       </Box>
     )
