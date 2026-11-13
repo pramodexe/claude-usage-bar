@@ -1,7 +1,7 @@
 {
   "name": "usage-bar",
-  "version": "0.1.0",
-  "description": "A sleek one-line usage readout under the prompt: context, rate limits and cost.",
+  "version": "0.2.0",
+  "description": "A sleek one-line usage readout beside the prompt: context and rate limits, on terminal and desktop.",
   "types": "./types/index.d.ts",
   "author": {
     "name": "pramodexe"

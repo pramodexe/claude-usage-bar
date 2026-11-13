@@ -1,6 +1,6 @@
 # usage-bar
 
-See your Claude usage at a glance, right under the prompt.
+See your Claude usage at a glance: under the prompt in the terminal, just above the prompt in Claude Desktop.
 
 ```
 context ━━━━━─── 58%   │   5h ━━────── 23% ↻ 2h10   │   week ━━━━━─── 61% ↻ 3d
