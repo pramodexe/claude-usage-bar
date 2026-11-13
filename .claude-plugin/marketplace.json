@@ -1,0 +1,16 @@
+{
+  "name": "claude-usage-bar",
+  "owner": {
+    "name": "pramodexe"
+  },
+  "metadata": {
+    "description": "See your Claude usage at a glance, right under the prompt."
+  },
+  "plugins": [
+    {
+      "name": "usage-bar",
+      "source": "./usage-bar",
+      "description": "A sleek one-line usage readout under the prompt: context and rate limits."
+    }
+  ]
+}

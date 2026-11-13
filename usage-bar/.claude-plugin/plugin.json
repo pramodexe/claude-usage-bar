@@ -1,0 +1,11 @@
+{
+  "name": "usage-bar",
+  "version": "0.1.0",
+  "description": "A sleek one-line usage readout under the prompt: context, rate limits and cost.",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "pramodexe"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/pramodexe/claude-usage-bar"
+}
