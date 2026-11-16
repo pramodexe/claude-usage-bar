@@ -5,6 +5,12 @@ import type { Limit, Snapshot } from '../types'
 
 const snapshot = atom({ plugin: 'usage-bar', key: 'snapshot' } as const, null)
 
+// Rate limits are account-wide, but a session only hears new numbers when it
+// talks to Claude itself. Every session shares its newest reading through this
+// file and checks it every few seconds, so idle terminals stay current too.
+const SHARED_FILE = '.claude/usage-bar/limits.json'
+const CHECK_EVERY_MS = 2000
+
 const LABELS: Record<string, string> = { five_hour: '5h', seven_day: 'week', spend_limit: 'spend' }
 const BAR_CELLS = 8
 
@@ -14,7 +20,55 @@ const toSnapshot = (u: { context: SessionContextUsage; rateLimits: SessionRateLi
   contextWindow: u.context.window,
   limits: u.rateLimits.map((r): Limit => ({ kind: r.kind, percent: r.percentUsed, resetsAt: r.resetsAt })),
   costUsd: u.cost?.usd,
+  limitsAt: u.rateLimits.length ? Date.now() : undefined,
 })
+
+type Shared = { updatedAt: number; limits: Limit[] }
+
+const sharedPath = async ($: any) => {
+  const home = await $.env.get('HOME')
+  return home ? `${home}/${SHARED_FILE}` : undefined
+}
+
+// Saves this session's newest limits for the other sessions to pick up.
+async function shareLimits($: any, snap: Snapshot) {
+  if (!snap.limits.length || !snap.limitsAt) return
+  const path = await sharedPath($)
+  if (!path) return
+  const data: Shared = { updatedAt: snap.limitsAt, limits: snap.limits }
+  await $.fs.write(path, JSON.stringify(data)).catch(() => {})
+}
+
+// Every few seconds: take newer limits from the shared file, and redraw once
+// a minute so the reset countdown keeps moving on an idle terminal.
+function startSharedCheck($: any) {
+  let lastMtime = 0
+  $.clock.every(CHECK_EVERY_MS, async () => {
+    try {
+      const path = await sharedPath($)
+      let shared: Shared | undefined
+      if (path) {
+        const stat = await $.fs.stat(path).catch(() => undefined)
+        if (stat && stat.mtimeMs > lastMtime) {
+          lastMtime = stat.mtimeMs
+          try {
+            shared = JSON.parse(await $.fs.read(path))
+          } catch {}
+        }
+      }
+      const minute = Math.floor((await $.clock.now()) / 60_000)
+      const cur: Snapshot | null = await read($, snapshot)
+      const isNewer = !!shared && Array.isArray(shared.limits) && shared.updatedAt > (cur?.limitsAt ?? 0)
+      if (!isNewer && cur?.minute === minute) return
+      await update($, snapshot, (old: Snapshot | null) => {
+        const base: Snapshot = old ?? { contextWindow: 0, limits: [] }
+        return isNewer
+          ? { ...base, limits: shared!.limits, limitsAt: shared!.updatedAt, minute }
+          : { ...base, minute }
+      })
+    } catch {}
+  })
+}
 
 // Blue & white palette: the bar brightens from deep blue toward ice blue as it fills.
 const PALETTE = {
@@ -75,7 +129,8 @@ async function usageParts($: any, e: any): Promise<RenderChildren[]> {
   for (const l of snap.limits) {
     const label = LABELS[l.kind] ?? l.kind
     const reset = untilReset(l.resetsAt, now)
-    const pct = Math.round(l.percent)
+    const isPastReset = !!l.resetsAt && Date.parse(l.resetsAt) <= now
+    const pct = isPastReset ? 0 : Math.round(l.percent)
     parts.push(sep(`s-${l.kind}`))
     parts.push(
       <Box key={l.kind} flexDirection="row">
@@ -100,6 +155,7 @@ export const register: Register = on => {
     const result = await next(e)
     const u = await $.session.usage()
     await update($, snapshot, () => toSnapshot(u))
+    startSharedCheck($)
     return result
   })
 
@@ -113,7 +169,12 @@ export const register: Register = on => {
   })
 
   on('session.measure', async ($, e, next) => {
-    await update($, snapshot, () => toSnapshot(e))
+    const fresh = toSnapshot(e)
+    await update($, snapshot, (old: Snapshot | null) =>
+      // no limits in this reading: keep the ones we already have
+      fresh.limits.length || !old ? fresh : { ...fresh, limits: old.limits, limitsAt: old.limitsAt, minute: old.minute },
+    )
+    await shareLimits($, fresh)
     return next(e)
   })
 

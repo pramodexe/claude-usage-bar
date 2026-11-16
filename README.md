@@ -16,6 +16,8 @@ Works in **Claude Code (CLI)** and **Claude Desktop** (the Code section). Instal
 
 The bars get brighter as they fill up.
 
+Using Claude in more than one terminal? The **5h** and **week** numbers stay up to date in all of them, even the ones you're not typing in. They refresh every 2 seconds.
+
 ## Easy install: let Claude do it
 
 Copy this prompt, paste it into Claude Code (in the terminal or in Claude Desktop), and Claude will do the rest:

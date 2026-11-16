@@ -5,6 +5,8 @@ export type Snapshot = {
   contextWindow: number
   limits: Limit[]
   costUsd?: number
+  limitsAt?: number // when the limits were read (ms), to pick the newest
+  minute?: number // last minute redrawn, keeps the reset countdown moving
 }
 
 declare module 'claude-code' {

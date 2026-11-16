@@ -1,6 +1,6 @@
 {
   "name": "usage-bar",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "A sleek one-line usage readout beside the prompt: context and rate limits, on terminal and desktop.",
   "types": "./types/index.d.ts",
   "author": {
